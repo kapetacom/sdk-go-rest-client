@@ -181,3 +181,20 @@ func (c *RestClient) PATCH(url string, body any, requestModifier ...func(req *ht
 	}
 	return http.DefaultClient.Do(req)
 }
+
+// HEAD performs a HEAD request to the specified URL. The requestModifier can be used to modify the request before it is sent.
+// Example:
+//
+//	response, err := client.HEAD(client.ResolveURL("/api/v1/users/%s", userID), func(req *http.Request) {
+//		req.Header.Set("Authorization", "Bearer "+token)
+//	})
+func (c *RestClient) HEAD(url string, requestModifier ...func(req *http.Request)) (*http.Response, error) {
+	req, err := http.NewRequest("HEAD", url, nil)
+	if err != nil {
+		return nil, err
+	}
+	for _, modifier := range requestModifier {
+		modifier(req)
+	}
+	return http.DefaultClient.Do(req)
+}
