@@ -72,6 +72,16 @@ func (c *RestClient) ResolveURL(path string, args ...interface{}) string {
 	return fmt.Sprintf("%s%s", c.BaseURL, fmt.Sprintf(path, args...))
 }
 
+func QueryParameterRequestModifier(queryParams any) func(req *http.Request) {
+	return func(req *http.Request) {
+		params, err := StructToQueryParams(queryParams)
+		if err != nil {
+			panic(fmt.Errorf("error creating query parameters: %s", err))
+		}
+		req.URL.RawQuery += params
+	}
+}
+
 // GET performs a GET request to the specified URL. The requestModifier can be used to modify the request before it is sent.
 // Example:
 //
@@ -140,6 +150,28 @@ func (c *RestClient) POST(url string, body any, requestModifier ...func(req *htt
 		return nil, err
 	}
 	req, err := http.NewRequest("POST", url, bytes.NewBuffer(bodyData))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	for _, modifier := range requestModifier {
+		modifier(req)
+	}
+	return http.DefaultClient.Do(req)
+}
+
+// PATCH performs a PATCH request to the specified URL. The requestModifier can be used to modify the request before it is sent.
+// Example:
+//
+//	response, err := client.PATCH(client.ResolveURL("/api/v1/users/%s", userID), user, func(req *http.Request) {
+//		req.Header.Set("Authorization", "Bearer "+token)
+//	})
+func (c *RestClient) PATCH(url string, body any, requestModifier ...func(req *http.Request)) (*http.Response, error) {
+	bodyData, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(bodyData))
 	if err != nil {
 		return nil, err
 	}
